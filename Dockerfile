@@ -27,4 +27,8 @@ EXPOSE 8000
 
 # Comando por defecto para arrancar la app con gunicorn + uvicorn worker
 # Usa el puerto de Render ($PORT) o 8000 por defecto en local
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "backend.app.main:app", "--bind", "0.0.0.0:${PORT:-8000}", "--workers", "1"]
+#CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "backend.app.main:app", "--bind", "0.0.0.0:${PORT:-8000}", "--workers", "1"]
+
+ENV PORT=8000
+CMD ["sh", "-c", "gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app --bind 0.0.0.0:$PORT"]
+
