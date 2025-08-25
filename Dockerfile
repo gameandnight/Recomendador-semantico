@@ -22,13 +22,15 @@ ENV PATH=/opt/conda/envs/reco-env/bin:$PATH
 COPY . /app
 WORKDIR /app
 
-# Expone el puerto (documentativo, Render usa $PORT igualmente)
+# Puerto documentativo (Render usa $PORT)
 EXPOSE 8000
 
-# Comando por defecto para arrancar la app con gunicorn + uvicorn worker
-# Usa el puerto de Render ($PORT) o 8000 por defecto en local
-#CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "backend.app.main:app", "--bind", "0.0.0.0:${PORT:-8000}", "--workers", "1"]
-
+# Asegurar que Render conozca un valor por defecto si no hay $PORT
 ENV PORT=8000
-CMD ["sh", "-c", "gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app --bind 0.0.0.0:$PORT"]
 
+# Comando de arranque:
+# - exec para recibir señales correctamente
+# - --timeout aumentado (ej. 300s) para evitar worker timeouts mientras cargan modelos
+# - --preload para cargar la app en el master (reduce la sobrecarga por fork)
+# - logs a stdout/stderr para que Render los muestre
+CMD ["sh", "-c", "exec gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app --bind 0.0.0.0:${PORT} --workers 1 --timeout 300 --preload --log-level info --access-logfile - --error-logfile -"]
