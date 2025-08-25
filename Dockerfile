@@ -1,46 +1,29 @@
-# Dockerfile (backend)
-FROM python:3.10-slim
+# Dockerfile (usa conda / mamba para instalar faiss/pytorch binarios)
+FROM continuumio/miniconda3:23.11.1-1
 
-ENV PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    POETRY_HOME="/opt/poetry" \
-    PATH="$POETRY_HOME/bin:$PATH"
-
-# system deps for faiss + torch + sentence-transformers (básico)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential git wget curl ca-certificates python3-dev \
-    libsndfile1 ffmpeg && \
-    rm -rf /var/lib/apt/lists/*
+# Evitamos prompts
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH=/opt/conda/bin:$PATH
 
 WORKDIR /app
 
-# Copia requirements (mejor tener requirements.txt generado)
-COPY backend/requirements.txt /app/requirements.txt
-RUN pip install --upgrade pip setuptools wheel
-RUN pip install -r /app/requirements.txt
+# Copiamos archivos necesarios primero (caching)
+COPY environment.yml /tmp/environment.yml
+# Instala mamba (más rápido que conda) y crea el entorno
+RUN conda install -y -n base -c conda-forge mamba && \
+    mamba env create -f /tmp/environment.yml && \
+    conda clean -afy
 
-# Copia código
-COPY backend /app/backend
+# Aseguramos que el entorno esté disponible en PATH
+SHELL ["conda", "run", "-n", "reco-env", "/bin/bash", "-lc"]
 
-# Directorio para datos persistentes (Render mountará aquí)
-VOLUME ["/data"]
-ENV FAISS_INDEX_PATH="/data/faiss.index"
-ENV FAISS_META_PATH="/data/meta.pkl"
+# Copiamos el resto del repo
+COPY . /app
+WORKDIR /app
 
-# Variables por defecto que puedes overridear en Render
-ENV MIN_SCORE_INDIVIDUAL=0.07 \
-    MIN_FINAL_SCORE=0.045 \
-    SOFTMAX_TEMP=0.30 \
-    OVERLAP_WEIGHT=0.22 \
-    MIN_OVERLAP_FOR_BOOST=0.06 \
-    STEM_BOOST=0.20 \
-    MIN_JACCARD_KEEP=0.08 \
-    USE_RERANKER=1 \
-    RERANK_K=20 \
-    RERANK_BLEND=0.7 \
-    RERANK_MIN_SCORE=0.045
-
+# Expone el puerto (uvicorn)
 EXPOSE 8000
 
-# Comando de arranque (uvicorn)
-CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# Comando por defecto para arrancar la app
+CMD ["conda", "run", "-n", "reco-env", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
