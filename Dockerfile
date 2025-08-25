@@ -15,8 +15,8 @@ RUN conda install -y -n base -c conda-forge mamba && \
     mamba env create -f /tmp/environment.yml -n reco-env && \
     conda clean -afy
 
-# Aseguramos que el entorno esté disponible en PATH (usa conda run en CMD)
-SHELL ["conda", "run", "-n", "reco-env", "/bin/bash", "-lc"]
+# Aseguramos que el entorno esté disponible en PATH
+ENV PATH=/opt/conda/envs/reco-env/bin:$PATH
 
 # Copiamos el resto del repo
 COPY . /app
@@ -27,4 +27,4 @@ EXPOSE 8000
 
 # Comando por defecto para arrancar la app con gunicorn + uvicorn worker
 # Usa el puerto de Render ($PORT) o 8000 por defecto en local
-CMD ["conda", "run", "-n", "reco-env", "bash", "-c", "gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app --bind 0.0.0.0:${PORT:-8000} --workers 1"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "backend.app.main:app", "--bind", "0.0.0.0:${PORT:-8000}", "--workers", "1"]
