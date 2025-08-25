@@ -1,0 +1,25 @@
+name: reco-env
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch      # CPU build from pytorch channel
+  - faiss-cpu    # from conda-forge / pytorch channel depending on availability
+  - numpy=1.26.*    # mantén compatibilidad con tu código (>=1.26 usado localmente)
+  - rust           # necesario para tokenizers si pip lo construye (con conda evitará compilaciones)
+  - pip:
+    - fastapi==0.95.2
+    - uvicorn[standard]==0.22.0
+    - sentence-transformers==2.2.2
+    - transformers==4.29.2
+    - huggingface-hub==0.25.2
+    - pydantic==1.10.7
+    - python-multipart==0.0.6
+    - aiofiles==0.8.0
+    - gunicorn==20.1.0
+    - rank_bm25==0.2.2
+    - nltk==3.9.1
+    - tqdm
+    - requests
