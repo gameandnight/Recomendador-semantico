@@ -22,8 +22,9 @@ SHELL ["conda", "run", "-n", "reco-env", "/bin/bash", "-lc"]
 COPY . /app
 WORKDIR /app
 
-# Expone el puerto (uvicorn/gunicorn)
+# Expone el puerto (documentativo, Render usa $PORT igualmente)
 EXPOSE 8000
 
 # Comando por defecto para arrancar la app con gunicorn + uvicorn worker
-CMD ["conda", "run", "-n", "reco-env", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "backend.app.main:app", "--bind", "0.0.0.0:8000", "--workers", "1"]
+# Usa el puerto de Render ($PORT) o 8000 por defecto en local
+CMD ["conda", "run", "-n", "reco-env", "bash", "-c", "gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app --bind 0.0.0.0:${PORT:-8000} --workers 1"]
