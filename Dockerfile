@@ -1,29 +1,36 @@
-# Dockerfile (usa conda / mamba para instalar faiss/pytorch binarios)
+# Dockerfile — usa conda/mamba para instalar binarios (faiss, torch, tokenizers, etc.)
 FROM continuumio/miniconda3:23.11.1-1
 
-# Evitamos prompts
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH=/opt/conda/bin:$PATH
-
 WORKDIR /app
 
-# Copiamos archivos necesarios primero (caching)
-COPY environment.yml /tmp/environment.yml
-# Instala mamba (más rápido que conda) y crea el entorno
-RUN conda install -y -n base -c conda-forge mamba && \
-    mamba env create -f /tmp/environment.yml && \
-    conda clean -afy
+# Instala utilidades del sistema necesarias para algunos paquetes y para mamba
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential swig git wget curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Aseguramos que el entorno esté disponible en PATH
+# Copiamos environment.yml e instalamos mamba y el env
+COPY environment.yml /tmp/environment.yml
+RUN conda install -y -n base -c conda-forge mamba \
+    && mamba env create -f /tmp/environment.yml -n reco-env \
+    && conda clean -afy
+
+# Aseguramos que el entorno esté disponible (usaremos conda run)
 SHELL ["conda", "run", "-n", "reco-env", "/bin/bash", "-lc"]
 
-# Copiamos el resto del repo
+# Copiamos el resto del repo (incluye backend/, frontend/ y backend/data/)
 COPY . /app
 WORKDIR /app
 
-# Expone el puerto (uvicorn)
+# Pre-instala paquetes pip restantes dentro del entorno (si usas requirements.txt)
+# (Opcional si ya están en environment.yml — pero es seguro tenerlo)
+RUN if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
+
+# Expone el puerto que usa la app
 EXPOSE 8000
 
-# Comando por defecto para arrancar la app
-CMD ["conda", "run", "-n", "reco-env", "uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Command por defecto: usa gunicorn con uvicorn workers (producción ligera)
+CMD ["conda", "run", "-n", "reco-env", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "backend.app.main:app", "--bind", "0.0.0.0:8000", "--workers", "1"]
+
 
