@@ -85,9 +85,9 @@ Frontend:
 
 ```bash
 cd frontend
-npm run dev    # http://localhost:5173
+npm run dev    # http://localhost:5173 
 ```
-
+en http://localhost:5173 usando los valores por defecto de la interfaz y activando Use Re-ranker se obtienen buenos resultados
 ---
 
 # 📡 API — Endpoint principal
