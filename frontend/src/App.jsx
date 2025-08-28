@@ -118,9 +118,7 @@ export default function App() {
             <input type="number" value={rerankK} onChange={e => setRerankK(e.target.value)} />
           </div>
 
-          <div className="control action">
-            <button className="btn outline" onClick={doSearch} disabled={!q || loading}>Buscar (con α/β)</button>
-          </div>
+          
         </div>
       </section>
 
