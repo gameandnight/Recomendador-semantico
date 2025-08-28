@@ -30,6 +30,43 @@ export default function App() {
     if (e.key === "Enter") doSearch();
   };
 
+  // --- NUEVA LÓGICA PARA IMÁGENES ---
+  const getImageUrl = (product, idx) => {
+    // 1) si hay URL absoluta en product.image, usarla
+    const img = product?.image;
+    if (img && /^https?:\/\//i.test(img)) {
+      return img;
+    }
+
+    // 2) intentar keyword por categoría o título (palabra significativa)
+    const title = (product?.title || "").toString().trim();
+    const category = (product?.category || "").toString().trim();
+
+    const pickKeywordFromText = (text) => {
+      if (!text) return "";
+      // split y busca primera palabra larga (>2), ignora signos
+      const toks = text.split(/[\s,._\-\/]+/).map(t => t.replace(/[^\wáéíóúñüÁÉÍÓÚÑÜ]+/g, ""));
+      for (let t of toks) {
+        if (t && t.length > 2) return t.toLowerCase();
+      }
+      return "";
+    };
+
+    const keyword = pickKeywordFromText(category) || pickKeywordFromText(title);
+
+    // 3) si tenemos keyword -> usar Unsplash Source por keyword (+ sig para variar)
+    if (keyword) {
+      // tamaño 400x400; sig ayuda a reducir repeticiones entre tarjetas
+      const sig = encodeURIComponent(product?.id ?? idx);
+      return `https://source.unsplash.com/400x400/?${encodeURIComponent(keyword)}&sig=${sig}`;
+    }
+
+    // 4) fallback determinista con Picsum (seed por id o índice)
+    const seed = encodeURIComponent(product?.id ?? idx);
+    return `https://picsum.photos/seed/${seed}/400/400`;
+  };
+  // --- fin de la nueva lógica ---
+
   return (
     <div className="container">
       <header className="header">
@@ -95,9 +132,11 @@ export default function App() {
             <article key={r.product.id || i} className="product-card">
               <div className="product-media">
                 {r.product.image ? (
-                  <img src={r.product.image} alt={r.product.title} />
+                  // si viene imagen (validada por getImageUrl si tiene http), la usamos
+                  <img src={getImageUrl(r.product, i)} alt={r.product.title} />
                 ) : (
-                  <div className="placeholder-image">IMG</div>
+                  // si no viene, getImageUrl devolverá Unsplash o Picsum
+                  <img src={getImageUrl(r.product, i)} alt={r.product.title} />
                 )}
               </div>
 
@@ -131,3 +170,4 @@ export default function App() {
     </div>
   );
 }
+
