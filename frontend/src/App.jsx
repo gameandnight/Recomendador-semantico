@@ -20,69 +20,114 @@ export default function App() {
     } catch (e) {
       alert(e.message);
     } finally { setLoading(false); }
-  }
+  };
 
   const formatScore = (s) => {
     return (Number(s) * 100).toFixed(2) + "%";
-  }
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === "Enter") doSearch();
+  };
 
   return (
-    <div className="container" style={{ maxWidth: 900, margin: "20px auto", fontFamily: "Arial, sans-serif" }}>
-      <h1>Supermercado (Recomendador Semántico)</h1>
+    <div className="container">
+      <header className="header">
+        <div>
+          <h1 className="title">Supermercado</h1>
+          <p className="subtitle">Recomendador Semántico — demo</p>
+        </div>
+      </header>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        <input style={{ flex: 1, padding: 8 }} value={q} onChange={e => setQ(e.target.value)} placeholder="Busca por ejemplo: 'chaqueta impermeable'" />
-        <button onClick={doSearch} disabled={!q || loading}>{loading ? "Buscando..." : "Buscar"}</button>
-      </div>
+      <section className="search-area">
+        <div className="search-row">
+          <input
+            className="search-input"
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder="Busca por ejemplo: 'Patatas'"
+            aria-label="Buscar productos"
+            autoFocus
+          />
+          <button className="btn primary" onClick={doSearch} disabled={!q || loading}>
+            {loading ? <span className="spinner" aria-hidden /> : "Buscar"}
+          </button>
+        </div>
 
-      <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-        <div>
-          <label>k</label><br />
-          <input type="number" value={k} onChange={e => setK(e.target.value)} style={{ width: 60 }} />
-        </div>
-        <div>
-          <label>Embeddings α</label><br />
-          <input step="0.05" min="0" max="1" type="number" value={alpha} onChange={e => setAlpha(e.target.value)} style={{ width: 80 }} />
-        </div>
-        <div>
-          <label>BM25 β</label><br />
-          <input step="0.05" min="0" max="1" type="number" value={beta} onChange={e => setBeta(e.target.value)} style={{ width: 80 }} />
-        </div>
-        <div>
-          <label>Use Re-ranker</label><br />
-          <input type="checkbox" checked={useReranker} onChange={e => setUseReranker(e.target.checked)} />
-        </div>
-        <div>
-          <label>Rerank K</label><br />
-          <input type="number" value={rerankK} onChange={e => setRerankK(e.target.value)} style={{ width: 80 }} />
-        </div>
-        <div style={{ alignSelf: "end" }}>
-          <button onClick={doSearch} disabled={!q || loading}>Buscar (con α/β)</button>
-        </div>
-      </div>
-
-      <div>
-        {results.length === 0 && <p>No hay resultados aún.</p>}
-        {results.map((r, i) => (
-          <div key={r.product.id || i} style={{ border: "1px solid #ddd", padding: 12, borderRadius: 6, marginBottom: 8 }}>
-            <h3 style={{ margin: 0 }}>{r.product.title}</h3>
-            <p style={{ margin: "6px 0" }}>{r.product.description}</p>
-            <p style={{ margin: "6px 0" }}><strong>Precio:</strong> €{r.product.price}</p>
-            <small>Score: {formatScore(r.score)}</small>
-            <div style={{ marginTop: 6 }}>
-              <em>Origen: </em>
-              <span style={{
-                padding: "4px 8px",
-                borderRadius: 6,
-                background: r.source === "semantic" ? "#e0f7fa" : "#fff3e0",
-                fontSize: 12
-              }}>
-                {r.source === "semantic" ? "Semántico (Embeddings)" : "Textual (BM25)"}
-              </span>
-            </div>
+        <div className="controls-row" role="group" aria-label="Ajustes de búsqueda">
+          <div className="control">
+            <label>k</label>
+            <input type="number" value={k} onChange={e => setK(e.target.value)} />
           </div>
-        ))}
-      </div>
+
+          <div className="control">
+            <label>Embeddings α</label>
+            <input step="0.05" min="0" max="1" type="number" value={alpha} onChange={e => setAlpha(e.target.value)} />
+          </div>
+
+          <div className="control">
+            <label>BM25 β</label>
+            <input step="0.05" min="0" max="1" type="number" value={beta} onChange={e => setBeta(e.target.value)} />
+          </div>
+
+          <div className="control checkbox">
+            <label>Use Re-ranker</label>
+            <input type="checkbox" checked={useReranker} onChange={e => setUseReranker(e.target.checked)} />
+          </div>
+
+          <div className="control">
+            <label>Rerank K</label>
+            <input type="number" value={rerankK} onChange={e => setRerankK(e.target.value)} />
+          </div>
+
+          <div className="control action">
+            <button className="btn outline" onClick={doSearch} disabled={!q || loading}>Buscar (con α/β)</button>
+          </div>
+        </div>
+      </section>
+
+      <section className="results-area">
+        {results.length === 0 && !loading && <div className="empty">No hay resultados aún.</div>}
+
+        <div className="results-grid">
+          {results.map((r, i) => (
+            <article key={r.product.id || i} className="product-card">
+              <div className="product-media">
+                {r.product.image ? (
+                  <img src={r.product.image} alt={r.product.title} />
+                ) : (
+                  <div className="placeholder-image">IMG</div>
+                )}
+              </div>
+
+              <div className="product-body">
+                <h3 className="product-title">{r.product.title}</h3>
+                <p className="product-desc">{r.product.description}</p>
+
+                <div className="product-meta">
+                  <div className="price">€{r.product.price}</div>
+
+                  <div className="score">
+                    <div className="score-bar" style={{ width: `${Math.min(100, Number(r.score) * 100)}%` }} />
+                    <div className="score-text">{formatScore(r.score)}</div>
+                  </div>
+                </div>
+
+                <div className="product-footer">
+                  <span className={`badge ${r.source === "semantic" ? "semantic" : "textual"}`}>
+                    {r.source === "semantic" ? "Semántico (Embeddings)" : "Textual (BM25)"}
+                  </span>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <footer className="footer">
+        <small>Versión demo · Datos de ejemplo · Proyecto para portfolio</small>
+      </footer>
     </div>
   );
 }
